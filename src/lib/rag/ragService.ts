@@ -1,6 +1,6 @@
-import { PineconeService } from './pineconeService';
-import { EmbeddingService } from './embeddingService';
-import { KnowledgeBase } from '../knowledge/knowledgeBase';
+// import { PineconeService } from './pineconeService';
+// import { EmbeddingService } from './embeddingService';
+// import { KnowledgeBase } from '../knowledge/knowledgeBase';
 
 export interface RAGContext {
   text: string;
