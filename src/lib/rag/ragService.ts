@@ -2,64 +2,19 @@
 // import { EmbeddingService } from './embeddingService';
 // import { KnowledgeBase } from '../knowledge/knowledgeBase';
 
-export interface RAGContext {
-  text: string;
-  sources: string[];
-}
+// RAGService temporarily disabled for deployment
+// Will be implemented after domain goes live
 
+/*
 export class RAGService {
-  private pineconeService: PineconeService;
-  private embeddingService: EmbeddingService;
-  private knowledgeBase: KnowledgeBase;
+  // Implementation commented out for deployment
+  // Will be restored once missing services are created
+}
+*/
 
-  constructor() {
-    this.pineconeService = new PineconeService();
-    this.embeddingService = new EmbeddingService();
-    this.knowledgeBase = new KnowledgeBase();
-  }
-
-  async getRelevantContext(query: string): Promise<RAGContext> {
-    try {
-      // Generate embedding for the query
-      const queryEmbedding = await this.embeddingService.generateEmbedding(query);
-      
-      // Search for similar content in Pinecone
-      const searchResults = await this.pineconeService.search(queryEmbedding, 5);
-      
-      // Extract relevant text and sources
-      const relevantTexts = searchResults.map(result => result.metadata?.text || '');
-      const sources = searchResults.map(result => result.metadata?.source || '');
-      
-      // Combine context
-      const context = relevantTexts.join('\n\n');
-      
-    return {
-      text: context,
-      sources: Array.from(new Set(sources)), // Remove duplicates
-    };
-    } catch (error) {
-      console.error('RAG Service error:', error);
-      
-      // Fallback to static knowledge base
-      return {
-        text: this.knowledgeBase.getStaticContext(query),
-        sources: ['CloudWalk Knowledge Base'],
-      };
-    }
-  }
-
-  async initializeKnowledgeBase(): Promise<void> {
-    try {
-      const documents = this.knowledgeBase.getAllDocuments();
-      
-      for (const doc of documents) {
-        const embedding = await this.embeddingService.generateEmbedding(doc.content);
-        await this.pineconeService.upsert(doc.id, embedding, doc.metadata);
-      }
-      
-      console.log('Knowledge base initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize knowledge base:', error);
-    }
+// Placeholder export to prevent import errors
+export class RAGService {
+  async query(question: string): Promise<string> {
+    return "RAG service temporarily unavailable - will be restored soon";
   }
 }
