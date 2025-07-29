@@ -1,0 +1,263 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant/Organization model
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  domain      String?  @unique
+  plan        Plan     @default(FREE)
+  status      TenantStatus @default(ACTIVE)
+  settings    Json     @default("{}")
+  metadata    Json     @default("{}")
+  
+  // Billing
+  stripeCustomerId String?
+  subscriptionId    String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  users       User[]
+  apiKeys     ApiKey[]
+  knowledgeBases KnowledgeBase[]
+  conversations Conversation[]
+  usage       Usage[]
+  
+  @@map("tenants")
+}
+
+// User model with tenant association
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  avatar      String?
+  role        UserRole @default(MEMBER)
+  status      UserStatus @default(ACTIVE)
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Auth
+  emailVerified DateTime?
+  password     String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  conversations Conversation[]
+  apiKeys     ApiKey[]
+  
+  @@unique([email, tenantId])
+  @@map("users")
+}
+
+// API Keys for tenant authentication
+model ApiKey {
+  id          String   @id @default(cuid())
+  name        String
+  key         String   @unique
+  permissions String[] // JSON array of permissions
+  expiresAt   DateTime?
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // User who created the key
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("api_keys")
+}
+
+// Knowledge Base for each tenant
+model KnowledgeBase {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // Vector store integration
+  vectorStoreId String?
+  vectorStoreType VectorStoreType @default(PINECONE)
+  
+  // Content
+  documents   Document[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("knowledge_bases")
+}
+
+// Documents in knowledge base
+model Document {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  metadata    Json     @default("{}")
+  embedding   Float[]  // Vector embedding
+  vectorId    String?  // ID in vector store
+  
+  // Knowledge base association
+  knowledgeBaseId String
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("documents")
+}
+
+// Conversations
+model Conversation {
+  id          String   @id @default(cuid())
+  title       String?
+  status      ConversationStatus @default(ACTIVE)
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  // User association
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  // Messages
+  messages    Message[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("conversations")
+}
+
+// Messages in conversations
+model Message {
+  id          String   @id @default(cuid())
+  content     String
+  role        MessageRole
+  metadata    Json     @default("{}")
+  
+  // Conversation association
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("messages")
+}
+
+// Usage tracking
+model Usage {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  type        UsageType
+  count       Int      @default(1)
+  metadata    Json     @default("{}")
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, date, type])
+  @@map("usage")
+}
+
+// Audit logs
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  resource    String
+  resourceId  String?
+  metadata    Json     @default("{}")
+  
+  // User who performed the action
+  userId      String?
+  userEmail   String?
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("audit_logs")
+}
+
+// Enums
+enum Plan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum VectorStoreType {
+  PINECONE
+  WEAVIATE
+  QDRANT
+  CHROMA
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum UsageType {
+  API_CALLS
+  CONVERSATIONS
+  DOCUMENTS
+  EMBEDDINGS
+} 

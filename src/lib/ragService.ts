@@ -1,11 +1,13 @@
 import { generateEmbedding, generateResponse } from './openaiService'
 import { searchSimilarContent } from './pineconeService'
+import { TenantContext } from './tenant'
 
 export interface RAGOptions {
   companyId: string
   companyName?: string
   topK?: number
   minSimilarity?: number
+  tenantContext?: TenantContext
 }
 
 export async function processQuery(

@@ -69,7 +69,7 @@ export default function ChatInterface() {
         )}
       </div>
       
-      <div className="border-t p-4">
+      <div className="border-t p-4 max-w-full overflow-hidden">
         <div className="flex space-x-2">
           <input
             type="text"
@@ -77,7 +77,7 @@ export default function ChatInterface() {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             placeholder="Ask me anything about your business..."
-            className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 border rounded-lg px-2 sm:px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full min-w-0"
           />
           <button
             onClick={sendMessage}
