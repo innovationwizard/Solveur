@@ -153,10 +153,10 @@ export async function handleSubscriptionDeleted(subscription: Stripe.Subscriptio
   }
 }
 
-function getPlanFromStripePriceId(priceId: string): string {
+function getPlanFromStripePriceId(priceId: string): 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' {
   const plans = Object.values(PLANS)
   const plan = plans.find(p => p.stripePriceId === priceId)
-  return plan?.id.toUpperCase() || 'FREE'
+  return (plan?.id.toUpperCase() as 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE') || 'FREE'
 }
 
 export async function getUsageStats(tenantId: string) {

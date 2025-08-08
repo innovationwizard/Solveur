@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { signOut } from 'next-auth/react'
 import { 
   Bot, 
   Settings, 
@@ -17,7 +18,8 @@ import {
   MessageSquare,
   Palette,
   BookOpen,
-  Zap
+  Zap,
+  LogOut
 } from 'lucide-react'
 import TenantSwitcher from '@/components/TenantSwitcher'
 

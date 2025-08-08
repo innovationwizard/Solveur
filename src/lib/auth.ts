@@ -104,11 +104,10 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = user.role
-        token.isSuperuser = user.isSuperuser
-        token.tenantId = user.tenantId
-        token.tenantSlug = user.tenantSlug
-        token.role = user.role
+        token.role = (user as any).role
+        token.isSuperuser = (user as any).isSuperuser
+        token.tenantId = (user as any).tenantId
+        token.tenantSlug = (user as any).tenantSlug
       }
       return token
     },

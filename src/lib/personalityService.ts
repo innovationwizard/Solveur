@@ -14,6 +14,7 @@ export interface PersonalityConfig {
   context: Record<string, any>
   responseLength: string
   language: string
+  isActive?: boolean
 }
 
 export interface IndustryDefaults {

@@ -21,7 +21,8 @@ const personalitySchema = z.object({
   customPrompt: z.string().optional(),
   context: z.record(z.any()).optional(),
   responseLength: z.enum(['short', 'medium', 'long']),
-  language: z.string().default('en')
+  language: z.string().default('en'),
+  isActive: z.boolean().optional()
 })
 
 export async function GET(request: NextRequest) {

@@ -40,7 +40,10 @@ export async function getTenantFromHeaders(): Promise<TenantContext | null> {
       }
     })
 
-    return tenant
+    return tenant ? {
+      ...tenant,
+      settings: tenant.settings as Record<string, any>
+    } : null
   } catch (error) {
     console.error('Error getting tenant from headers:', error)
     return null
@@ -73,7 +76,10 @@ export async function getUserFromHeaders(): Promise<UserContext | null> {
       }
     })
 
-    return user
+    return user ? {
+      ...user,
+      name: user.name || undefined
+    } : null
   } catch (error) {
     console.error('Error getting user from headers:', error)
     return null
@@ -94,7 +100,10 @@ export async function getTenantById(tenantId: string): Promise<TenantContext | n
       }
     })
 
-    return tenant
+    return tenant ? {
+      ...tenant,
+      settings: tenant.settings as Record<string, any>
+    } : null
   } catch (error) {
     console.error('Error getting tenant by ID:', error)
     return null
@@ -115,7 +124,10 @@ export async function getTenantBySlug(slug: string): Promise<TenantContext | nul
       }
     })
 
-    return tenant
+    return tenant ? {
+      ...tenant,
+      settings: tenant.settings as Record<string, any>
+    } : null
   } catch (error) {
     console.error('Error getting tenant by slug:', error)
     return null
@@ -154,7 +166,10 @@ export async function createTenant(data: {
       }
     })
 
-    return tenant
+    return tenant ? {
+      ...tenant,
+      settings: tenant.settings as Record<string, any>
+    } : null
   } catch (error) {
     console.error('Error creating tenant:', error)
     return null

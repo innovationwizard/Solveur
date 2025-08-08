@@ -45,6 +45,16 @@ export async function processKnowledgeBase(knowledgeBaseId: string) {
   try {
     console.log(`Processing knowledge base ${knowledgeBaseId}`)
 
+    // Get knowledge base with tenant info
+    const knowledgeBase = await prisma.knowledgeBase.findUnique({
+      where: { id: knowledgeBaseId },
+      include: { tenant: true }
+    })
+
+    if (!knowledgeBase) {
+      throw new Error('Knowledge base not found')
+    }
+
     // Get all documents in the knowledge base
     const documents = await prisma.document.findMany({
       where: {
@@ -55,7 +65,7 @@ export async function processKnowledgeBase(knowledgeBaseId: string) {
     // Process each document
     for (const document of documents) {
       try {
-        await processDocument(document.id, document.content, document.knowledgeBase.tenantId)
+        await processDocument(document.id, document.content, knowledgeBase.tenant.id)
       } catch (error) {
         console.error(`Error processing document ${document.id}:`, error)
         // Continue with other documents

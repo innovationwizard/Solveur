@@ -39,7 +39,7 @@ export async function GET(
       metadata: doc.metadata,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
-      status: doc.metadata?.status || 'active'
+      status: (doc.metadata as any)?.status || 'active'
     }))
 
     return NextResponse.json({
@@ -116,7 +116,7 @@ export async function POST(
             where: { id: document.id },
             data: {
               metadata: {
-                ...document.metadata,
+                ...(document.metadata as any),
                 status: 'active',
                 processedAt: new Date().toISOString()
               }
@@ -130,7 +130,7 @@ export async function POST(
             where: { id: document.id },
             data: {
               metadata: {
-                ...document.metadata,
+                ...(document.metadata as any),
                 status: 'error',
                 error: processingError instanceof Error ? processingError.message : 'Processing failed'
               }
