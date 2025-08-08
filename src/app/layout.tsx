@@ -11,11 +11,11 @@ export const metadata: Metadata = {
   viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no',
   icons: {
     icon: [
-      { url: '/favicon-16x16.svg', sizes: '16x16', type: 'image/svg+xml' },
-      { url: '/favicon.svg', sizes: '32x32', type: 'image/svg+xml' },
+      { url: '/solveur_logo_small.png', sizes: '32x32', type: 'image/png' },
+      { url: '/solveur_logo.png', sizes: '192x192', type: 'image/png' },
     ],
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
+    shortcut: '/solveur_logo_small.png',
+    apple: '/solveur_logo.png',
   },
   openGraph: {
     title: 'Solveur - AI Business Problem Solver',
@@ -24,10 +24,11 @@ export const metadata: Metadata = {
     siteName: 'Solveur',
     images: [
       {
-        url: '/og-image.svg',
+        url: '/solveur_logo.png',
         width: 1200,
         height: 630,
         alt: 'Solveur - AI Business Problem Solver',
+        type: 'image/png',
       },
     ],
     locale: 'en_US',
@@ -37,7 +38,15 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Solveur - AI Business Problem Solver',
     description: 'Deploy AI customer support agents in 24 hours. Transform your business knowledge into intelligent AI agents.',
-    images: ['/og-image.svg'],
+    images: ['/solveur_logo.png'],
+  },
+  other: {
+    // WhatsApp-specific meta tags
+    'whatsapp-meta': 'true',
+    'og:image:width': '1200',
+    'og:image:height': '630',
+    'og:image:type': 'image/png',
+    'og:image:alt': 'Solveur - AI Business Problem Solver',
   },
   robots: {
     index: true,
