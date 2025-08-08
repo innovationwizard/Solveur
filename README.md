@@ -31,10 +31,9 @@ Solveur is an AI-powered business problem solver built with a world-class multit
 
 - Node.js 18+
 - PostgreSQL 14+
-- Redis (for job queues)
-- Stripe account
-- OpenAI API key
-- Pinecone account
+- OpenAI API key (required)
+- Pinecone account (optional)
+- Stripe account (optional)
 
 ### Installation
 
@@ -50,47 +49,53 @@ Solveur is an AI-powered business problem solver built with a world-class multit
    ```
 
 3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   ```
    
-   Configure the following variables:
+   Create a `.env.local` file with the following variables:
    ```env
-   # Database
+   # Required
    DATABASE_URL="postgresql://username:password@localhost:5432/solveur"
+   OPENAI_API_KEY="your-openai-api-key"
    
-   # NextAuth
+   # Optional - for authentication
    NEXTAUTH_URL="http://localhost:3000"
    NEXTAUTH_SECRET="your-nextauth-secret-key"
    
-   # OpenAI
-   OPENAI_API_KEY="your-openai-api-key"
-   
-   # Pinecone
+   # Optional - for vector search
    PINECONE_API_KEY="your-pinecone-api-key"
-   PINECONE_ENVIRONMENT="your-pinecone-environment"
+   PINECONE_HOST="your-pinecone-host"
+   PINECONE_INDEX_NAME="solveur-index"
    
-   # Stripe
+   # Optional - for billing
    STRIPE_SECRET_KEY="sk_test_your-stripe-secret-key"
    STRIPE_PUBLISHABLE_KEY="pk_test_your-stripe-publishable-key"
    STRIPE_WEBHOOK_SECRET="whsec_your-stripe-webhook-secret"
-   
-   # Stripe Price IDs
-   STRIPE_STARTER_PRICE_ID="price_your-starter-plan-id"
-   STRIPE_PROFESSIONAL_PRICE_ID="price_your-professional-plan-id"
-   STRIPE_ENTERPRISE_PRICE_ID="price_your-enterprise-plan-id"
    ```
 
 4. **Set up the database**
    ```bash
-   npx prisma generate
-   npx prisma db push
+   npm run db:generate
+   npm run db:push
+   npm run db:setup
    ```
 
 5. **Start the development server**
    ```bash
    npm run dev
    ```
+
+### Production Deployment
+
+1. **Set environment variables** in your hosting platform
+2. **Run database migrations**:
+   ```bash
+   npm run db:generate
+   npm run db:push
+   npm run db:setup
+   ```
+3. **Deploy the application**
+4. **Check health status**: Visit `/api/health` to verify all services
+
+For detailed production setup, see [ENVIRONMENT_SETUP.md](./ENVIRONMENT_SETUP.md).
 
 ## 🏢 Multitenant Features
 

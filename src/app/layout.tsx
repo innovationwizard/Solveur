@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   viewport: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no',
 };
 
+import { AuthProvider } from '@/providers/session'
+
 export default function RootLayout({
   children,
 }: {
@@ -17,7 +19,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   )
 }

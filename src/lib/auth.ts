@@ -15,12 +15,46 @@ export const authOptions: NextAuthOptions = {
         tenantSlug: { label: 'Tenant', type: 'text' }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password || !credentials?.tenantSlug) {
+        if (!credentials?.email || !credentials?.password) {
           return null
         }
 
         try {
-          // Find tenant
+          // For admin routes, check superuser without tenant
+          if (!credentials.tenantSlug) {
+            const user = await prisma.user.findUnique({
+              where: {
+                email: credentials.email,
+                status: 'ACTIVE'
+              },
+              include: {
+                tenant: true
+              }
+            })
+
+            if (!user || !user.password || !user.isSuperuser) {
+              return null
+            }
+
+            // Verify password
+            const isValidPassword = await bcrypt.compare(credentials.password, user.password)
+
+            if (!isValidPassword) {
+              return null
+            }
+
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              role: user.role,
+              isSuperuser: user.isSuperuser,
+              tenantId: user.tenantId,
+              tenantSlug: user.tenant.slug
+            }
+          }
+
+          // Regular tenant user authentication
           const tenant = await prisma.tenant.findUnique({
             where: { slug: credentials.tenantSlug },
             include: { users: true }
@@ -55,6 +89,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            isSuperuser: user.isSuperuser,
             tenantId: tenant.id,
             tenantSlug: tenant.slug
           }
@@ -68,6 +103,9 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id
+        token.role = user.role
+        token.isSuperuser = user.isSuperuser
         token.tenantId = user.tenantId
         token.tenantSlug = user.tenantSlug
         token.role = user.role
@@ -76,18 +114,18 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.sub!
+        session.user.id = token.id as string
+        session.user.role = token.role as string
+        session.user.isSuperuser = token.isSuperuser as boolean
         session.user.tenantId = token.tenantId as string
         session.user.tenantSlug = token.tenantSlug as string
-        session.user.role = token.role as string
       }
       return session
     }
   },
   pages: {
-    signIn: '/auth/signin',
-    signUp: '/auth/signup',
-    error: '/auth/error'
+    signIn: '/admin/login',
+    error: '/admin/login'
   },
   session: {
     strategy: 'jwt'

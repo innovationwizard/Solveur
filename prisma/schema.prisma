@@ -35,6 +35,8 @@ model Tenant {
   knowledgeBases KnowledgeBase[]
   conversations Conversation[]
   usage       Usage[]
+  auditLogs   AuditLog[]
+  personalities Personality[]
   
   @@map("tenants")
 }
@@ -47,6 +49,7 @@ model User {
   avatar      String?
   role        UserRole @default(MEMBER)
   status      UserStatus @default(ACTIVE)
+  isSuperuser Boolean  @default(false)
   
   // Tenant association
   tenantId    String
@@ -63,6 +66,7 @@ model User {
   // Relations
   conversations Conversation[]
   apiKeys     ApiKey[]
+  superuserLogs SuperuserLog[]
   
   @@unique([email, tenantId])
   @@map("users")
@@ -133,7 +137,41 @@ model Document {
   @@map("documents")
 }
 
-// Conversations
+// AI Personality Configuration for each tenant
+model Personality {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Professional", "Innovative", "Customer-Focused"
+  description String?
+  isActive    Boolean  @default(true)
+  
+  // Core personality traits
+  tone        String   @default("professional") // professional, friendly, casual, formal, enthusiastic
+  style       String   @default("balanced")     // concise, detailed, conversational, technical, inspirational
+  expertise   String[] // ["customer-support", "sales", "technical", "strategic", "creative"]
+  
+  // Philosophical foundations and values
+  philosophy  Json     @default("{}") // Core beliefs, influences, worldview
+  values      Json     @default("{}") // Company values, principles, mission
+  brandVoice  String?  // Custom brand voice description
+  
+  // Custom instructions and context
+  customPrompt String? // Additional AI instructions
+  context     Json     @default("{}") // Industry-specific context, company background
+  
+  // Response configuration
+  responseLength String @default("medium") // short, medium, long
+  language      String @default("en")
+  
+  // Tenant association
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("personalities")
+}
+
 model Conversation {
   id          String   @id @default(cuid())
   title       String?
@@ -209,6 +247,21 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Superuser action logs
+model SuperuserLog {
+  id          String   @id @default(cuid())
+  action      String
+  details     Json
+  
+  // User who performed the action
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("superuser_logs")
+}
+
 // Enums
 enum Plan {
   FREE
@@ -238,9 +291,8 @@ enum UserStatus {
 
 enum VectorStoreType {
   PINECONE
+  MILVUS
   WEAVIATE
-  QDRANT
-  CHROMA
 }
 
 enum ConversationStatus {
@@ -260,4 +312,4 @@ enum UsageType {
   CONVERSATIONS
   DOCUMENTS
   EMBEDDINGS
-} 
+}

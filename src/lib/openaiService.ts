@@ -1,36 +1,40 @@
 import OpenAI from 'openai'
+import { PersonalityConfig } from './personalityService'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string): Promise<number[] | null> {
   try {
     const response = await openai.embeddings.create({
       model: 'text-embedding-3-small',
       input: text,
     })
+
     return response.data[0].embedding
   } catch (error) {
     console.error('Error generating embedding:', error)
-    throw error
+    return null
   }
 }
 
 export async function generateResponse(
   query: string,
   context: string,
-  companyName: string = 'your company'
+  personality: PersonalityConfig,
+  companyName: string
 ): Promise<string> {
   try {
+    // Build system prompt using personality configuration
+    const systemPrompt = buildSystemPrompt(query, context, personality, companyName)
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
         {
           role: 'system',
-          content: `You are Solveur, an AI business assistant for ${companyName}. Use the provided context to answer questions accurately and helpfully. If the context doesn't contain relevant information, say so politely and offer to help in other ways.
-
-Context: ${context}`
+          content: systemPrompt
         },
         {
           role: 'user',
@@ -46,4 +50,48 @@ Context: ${context}`
     console.error('Error generating response:', error)
     throw error
   }
+}
+
+function buildSystemPrompt(
+  query: string,
+  context: string,
+  personality: PersonalityConfig,
+  companyName: string
+): string {
+  const philosophyText = Object.entries(personality.philosophy)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join('\n')
+
+  const valuesText = Object.entries(personality.values)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join('\n')
+
+  let systemPrompt = `You are Solveur, an AI business assistant for ${companyName}.
+
+PERSONALITY:
+- Tone: ${personality.tone}
+- Style: ${personality.style}
+- Expertise: ${personality.expertise.join(', ')}
+
+PHILOSOPHICAL FOUNDATIONS:
+${philosophyText}
+
+CORE VALUES:
+${valuesText}
+
+BRAND VOICE:
+${personality.brandVoice || `${companyName} is committed to excellence and customer satisfaction.`}
+
+INSTRUCTIONS:
+- Use the provided context to answer questions accurately and helpfully
+- Maintain the specified tone and style in your responses
+- If the context doesn't contain relevant information, say so politely and offer to help in other ways
+- Keep responses ${personality.responseLength} in length
+- Respond in ${personality.language}
+
+${personality.customPrompt ? `ADDITIONAL INSTRUCTIONS: ${personality.customPrompt}` : ''}
+
+Context: ${context}`
+
+  return systemPrompt
 }

@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     if (!tenant) {
       return NextResponse.json(
-        { error: 'Tenant not found' },
+        { error: 'Tenant not found. Please check your URL or contact support.' },
         { status: 404 }
       )
     }
@@ -159,8 +159,14 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Chat API Error:', error)
+    
+    // Return a more helpful error message
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }

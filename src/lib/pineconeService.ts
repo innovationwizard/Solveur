@@ -1,11 +1,24 @@
 import { Pinecone } from '@pinecone-database/pinecone'
 
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY || '',
-  environment: process.env.PINECONE_HOST || '', // Use your host as environment
-})
+// Check if Pinecone is properly configured
+const isPineconeConfigured = () => {
+  return process.env.PINECONE_API_KEY && 
+         process.env.PINECONE_HOST && 
+         process.env.PINECONE_INDEX_NAME
+}
 
-const indexName = process.env.PINECONE_INDEX_NAME || 'solveur'
+let pinecone: Pinecone | null = null
+let indexName: string | null = null
+
+if (isPineconeConfigured()) {
+  pinecone = new Pinecone({
+    apiKey: process.env.PINECONE_API_KEY!,
+    environment: process.env.PINECONE_HOST!, // Use your host as environment
+  })
+  indexName = process.env.PINECONE_INDEX_NAME!
+} else {
+  console.warn('Pinecone not configured. Vector search will be disabled.')
+}
 
 export async function searchSimilarContent(
   embedding: number[],
@@ -13,6 +26,12 @@ export async function searchSimilarContent(
   topK: number = 5
 ): Promise<string[]> {
   try {
+    // If Pinecone is not configured, return empty array
+    if (!pinecone || !indexName) {
+      console.log('Pinecone not configured, skipping vector search')
+      return []
+    }
+
     const index = pinecone.index(indexName)
     
     const queryResponse = await index.query({
@@ -39,6 +58,12 @@ export async function upsertDocument(
   metadata: Record<string, any> = {}
 ): Promise<void> {
   try {
+    // If Pinecone is not configured, skip upsert
+    if (!pinecone || !indexName) {
+      console.log('Pinecone not configured, skipping document upsert')
+      return
+    }
+
     const index = pinecone.index(indexName)
     
     await index.upsert([{
@@ -53,6 +78,7 @@ export async function upsertDocument(
     }])
   } catch (error) {
     console.error('Error upserting to Pinecone:', error)
-    throw error
+    // Don't throw error to prevent breaking the app
+    console.warn('Document upsert failed, continuing without vector storage')
   }
 }

@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createTenant } from '@/lib/tenant'
 import { hashPassword } from '@/lib/auth'
+import { createIndustryBasedPersonality } from '@/lib/personalityService'
+import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
 const createTenantSchema = z.object({
   name: z.string().min(2).max(100),
   slug: z.string().min(2).max(50).regex(/^[a-z0-9-]+$/),
+  industry: z.string().optional(),
+  size: z.string().optional(),
   domain: z.string().url().optional(),
   ownerEmail: z.string().email(),
   ownerName: z.string().min(2).max(100),
-  ownerPassword: z.string().min(8)
+  ownerPassword: z.string().min(8),
+  setup: z.object({
+    integrations: z.array(z.string()).optional(),
+    branding: z.object({
+      logo: z.string().url().optional(),
+      primaryColor: z.string().optional()
+    }).optional()
+  }).optional()
 })
 
 export async function POST(request: NextRequest) {
@@ -20,56 +31,92 @@ export async function POST(request: NextRequest) {
     const validatedData = createTenantSchema.parse(body)
     
     // Check if tenant slug already exists
-    const existingTenant = await createTenant({
-      name: validatedData.name,
-      slug: validatedData.slug,
-      domain: validatedData.domain,
-      ownerEmail: validatedData.ownerEmail,
-      ownerName: validatedData.ownerName
+    const existingTenant = await prisma.tenant.findUnique({
+      where: { slug: validatedData.slug }
     })
 
-    if (!existingTenant) {
+    if (existingTenant) {
       return NextResponse.json(
-        { error: 'Tenant creation failed' },
-        { status: 500 }
+        { error: 'Organization subdomain is already taken' },
+        { status: 409 }
       )
     }
+
+    // Create tenant with additional data
+    const newTenant = await prisma.tenant.create({
+      data: {
+        name: validatedData.name,
+        slug: validatedData.slug,
+        domain: validatedData.domain,
+        plan: 'FREE',
+        status: 'ACTIVE',
+        metadata: {
+          industry: validatedData.industry,
+          size: validatedData.size,
+          setup: validatedData.setup
+        }
+      }
+    })
+
+    // Create industry-based personality
+    const industry = validatedData.industry || 'technology'
+    await createIndustryBasedPersonality(
+      newTenant.id,
+      industry,
+      validatedData.name
+    )
 
     // Hash the owner's password
     const hashedPassword = await hashPassword(validatedData.ownerPassword)
 
-    // Update the owner user with password
-    const { prisma } = await import('@/lib/prisma')
-    await prisma.user.updateMany({
-      where: {
-        email: validatedData.ownerEmail,
-        tenantId: existingTenant.id
-      },
+    // Create the owner user
+    const owner = await prisma.user.create({
       data: {
-        password: hashedPassword
+        email: validatedData.ownerEmail,
+        name: validatedData.ownerName,
+        password: hashedPassword,
+        role: 'OWNER',
+        status: 'ACTIVE',
+        tenantId: newTenant.id
+      }
+    })
+
+    // Log tenant creation
+    await prisma.auditLog.create({
+      data: {
+        action: 'TENANT_CREATED',
+        resource: 'tenant',
+        resourceId: newTenant.id,
+        tenantId: newTenant.id,
+        userId: owner.id,
+        userEmail: owner.email,
+        metadata: {
+          tenantName: newTenant.name,
+          tenantSlug: newTenant.slug,
+          industry: validatedData.industry,
+          size: validatedData.size
+        }
       }
     })
 
     return NextResponse.json({
-      success: true,
+      message: 'Tenant created successfully',
       tenant: {
-        id: existingTenant.id,
-        name: existingTenant.name,
-        slug: existingTenant.slug,
-        domain: existingTenant.domain
+        id: newTenant.id,
+        name: newTenant.name,
+        slug: newTenant.slug,
+        domain: newTenant.domain
+      },
+      owner: {
+        id: owner.id,
+        email: owner.email,
+        name: owner.name
       }
     })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
-    console.error('Tenant creation error:', error)
+    console.error('Error creating tenant:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create tenant' },
       { status: 500 }
     )
   }
@@ -87,8 +134,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { getTenantBySlug } = await import('@/lib/tenant')
-    const tenant = await getTenantBySlug(slug)
+    const tenant = await prisma.tenant.findUnique({
+      where: { slug },
+      include: {
+        users: {
+          where: { status: 'ACTIVE' },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true
+          }
+        }
+      }
+    })
 
     if (!tenant) {
       return NextResponse.json(
@@ -99,9 +158,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ tenant })
   } catch (error) {
-    console.error('Tenant lookup error:', error)
+    console.error('Error fetching tenant:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch tenant' },
       { status: 500 }
     )
   }
